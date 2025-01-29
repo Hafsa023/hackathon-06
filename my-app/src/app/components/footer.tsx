@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { IoLocationOutline } from "react-icons/io5";
 import { FaTwitter, FaFacebook, FaYoutube, FaInstagram } from "react-icons/fa";
-import Image from "next/image";
+
 export default function Footer() {
   return (
     <footer className="bg-black text-white py-10 my-24">

@@ -5,9 +5,9 @@ import Nike from "@/app/assets/nike.png";
 import Link from "next/link";
 import { GiHamburgerMenu } from "react-icons/gi";
 import { CiSearch } from "react-icons/ci";
-import Logo2 from "@/app/assets/Logo2.png";
-import { SignOutButton, UserButton, useUser } from "@clerk/nextjs";
-import { link } from "fs";
+
+import {  UserButton, useUser } from "@clerk/nextjs";
+
 
 export default function Navbar() {
   const { user } = useUser();
@@ -19,7 +19,7 @@ export default function Navbar() {
   return (
     <div>
       <div className="bg-[#F5F5F5] border-b font-semibold flex justify-between items-center px-10 py-2">
-        <Image src={Logo2} alt="Logo" className="w-[50px]" />
+        
 
         <nav>
           <ul className="flex items-center space-x-3 text-black text-lg font-medium">
