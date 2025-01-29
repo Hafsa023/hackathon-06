@@ -1,7 +1,8 @@
+"use client"; // If you need client-side logic like Swal, make sure to keep this line.
+
 import { client } from "@/sanity/lib/client";
 import { urlFor } from "@/sanity/lib/image";
 import Image from "next/image";
-import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 
 // Define the Product interface
@@ -20,13 +21,45 @@ interface Product {
   status: string;
 }
 
-// Define the Props interface
 interface Props {
-  product: Product | null;
-  error: string | null;
+  params: {
+    slug: string;
+  };
 }
 
-export default function ProductDetails({ product, error }: Props) {
+// Server-side logic: This is a Server Component now (no useEffect)
+async function fetchProduct(slug: string): Promise<Product | null> {
+  const query = `
+    *[_type == "product" && slug.current == $slug]{
+      productName,
+      price,
+      description,
+      "imageUrl": image.asset->url,
+      "slug": slug.current,
+      _id,
+      _type,
+      colors,
+      inventory,
+      category,
+      status
+    }
+  `;
+  const data = await client.fetch(query, { slug });
+  return data.length === 0 ? null : data[0]; // Return the first product or null if not found
+}
+
+export default async function ProductDetails({ params }: Props) {
+  const { slug } = params;
+  const product = await fetchProduct(slug); // Fetch product details on the server side
+
+  if (!product) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-lg font-semibold text-red-600">Product not found.</p>
+      </div>
+    );
+  }
+
   const handleAddToCart = (e: React.MouseEvent, product: Product) => {
     e.preventDefault();
     Swal.fire({
@@ -36,32 +69,8 @@ export default function ProductDetails({ product, error }: Props) {
       showConfirmButton: false,
       timer: 1000,
     });
-    // Add your cart logic here, e.g., update the cart in local storage or state.
+    // Add cart logic here...
   };
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <p className="text-lg font-semibold text-red-600">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-4 px-6 py-2 bg-blue-500 text-white rounded-full"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!product) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-lg font-semibold">Loading...</p>
-      </div>
-    );
-  }
 
   return (
     <main>
@@ -114,42 +123,4 @@ export default function ProductDetails({ product, error }: Props) {
       </div>
     </main>
   );
-}
-
-// Fetch the product details based on the dynamic route
-export async function getServerSideProps({ params }: { params: { slug: string } }) {
-  const { slug } = params;
-  let product = null;
-  let error = null;
-
-  try {
-    const query = `
-      *[_type == "product" && slug.current == $slug]{
-        productName,
-        price,
-        description,
-        "imageUrl": image.asset->url,
-        "slug": slug.current,
-        _id,
-        _type,
-        colors,
-        inventory,
-        category,
-        status
-      }
-    `;
-    const data = await client.fetch(query, { slug });
-    if (data.length === 0) {
-      error = "Product not found.";
-    } else {
-      product = data[0];
-    }
-  } catch (err) {
-    console.error("Error fetching product:", err);
-    error = "Failed to load product details. Please try again later.";
-  }
-
-  return {
-    props: { product, error },
-  };
 }
