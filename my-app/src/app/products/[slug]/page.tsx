@@ -1,54 +1,55 @@
-
 "use client";
-
-import { useState, useEffect } from "react";
-import { useRouter } from "next/router"; // Import useRouter hook
-import { client } from "@/sanity/lib/client"; // Assuming you are using Sanity client
+import { client } from "@/sanity/lib/client";
+import { urlFor } from "@/sanity/lib/image";
 import Image from "next/image";
+import { useEffect, useState } from "react";
+import Swal from 'sweetalert2';
 
 interface Product {
-  name: string;
+  productName: string;
   price: number;
   description: string;
   imageUrl: string;
   slug: string;
+  _type: string;
   _id: string;
-  quantity?: number;  // Optional for cart
+  quantity?: number; 
+  colors: string;
   inventory: number;
-  status: string;
-  colors: string[];
   category: string;
+  status: string;
 }
 
 interface Props {
-  params: { slug: string };
+  params: {
+    slug: string;
+  };
 }
 
 export default function ProductDetails({ params }: Props) {
   const [product, setProduct] = useState<Product | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  // Handling async fetching of params.slug
-  const slug = params.slug;
+  const { slug } = params;
 
   useEffect(() => {
     const fetchProduct = async () => {
       try {
         const query = `
           *[_type == "product" && slug.current == $slug]{
-            name,
+            productName,
             price,
             description,
-            "imageUrl": imageUrl.asset->url,
+            "imageUrl": image.asset->url,
             "slug": slug.current,
             _id,
-            inventory,
-            status,
+            _type,
             colors,
-            category
+            inventory,
+            category,
+            status
           }
         `;
-        const data = await client.fetch(query, { slug });
+        const data = await client.fetch(query, { slug: slug });
         if (data.length === 0) {
           setError("Product not found.");
         } else {
@@ -61,25 +62,18 @@ export default function ProductDetails({ params }: Props) {
     };
 
     fetchProduct();
-  }, [slug]);
+  }, [slug]); // Dependency is slug, which will update if the param changes.
 
-  const handleAddToCart = (product: Product) => {
-    try {
-      const savedCart: Product[] = JSON.parse(localStorage.getItem("cart") || "[]");
-      const existingProduct = savedCart.find((item) => item._id === product._id);
-
-      if (existingProduct) {
-        existingProduct.quantity = (existingProduct.quantity || 1) + 1;
-      } else {
-        savedCart.push({ ...product, quantity: 1 });
-      }
-
-      localStorage.setItem("cart", JSON.stringify(savedCart));
-      alert(`${product.name} added to cart!`);
-    } catch (error) {
-      console.error("Error updating cart:", error);
-      alert("Failed to add product to cart.");
-    }
+  const handleAddToCart = (e: React.MouseEvent, product: Product) => {
+    e.preventDefault();
+    Swal.fire({
+      position: "top-right",
+      icon: "success",
+      title: `${product.productName} added to cart`,
+      showConfirmButton: false,
+      timer: 1000,
+    });
+    // Add your cart logic here, e.g., update the cart in local storage or state.
   };
 
   if (error) {
@@ -111,32 +105,33 @@ export default function ProductDetails({ params }: Props) {
       <div className="w-full bg-gradient-to-r from-amber-800 to-teal-800">
         <div className="max-w-[1440px] mx-auto flex items-center justify-center min-h-screen px-4">
           <div className="w-full max-w-[1000px] bg-white shadow-2xl rounded-2xl p-6">
-            <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-              {/* Image Section */}
-              <Image
-                src={product.imageUrl || "/fallback-image.jpg"} // Fallback image if imageUrl is missing
-                alt={product.name}
-                width={600}
-                height={600}
-                className="rounded-lg border-2"
-              />
+            {/* Image Section */}
+            <div className="flex flex-col md:flex-row justify-between items-center gap-6" key={product._id}>
+              {product.imageUrl && (
+                <Image
+                  src={urlFor(product.imageUrl).url()}
+                  alt={product.productName}
+                  width={600}
+                  height={600}
+                  className="rounded-lg border-2"
+                />
+              )}
 
               {/* Product Details */}
               <div className="p-6 md:p-12 grid gap-5 text-gray-800 text-center md:text-left">
-                <h1 className="text-3xl font-bold">{product.name}</h1>
+                <h1 className="text-3xl font-bold">{product.productName}</h1>
                 <p className="text-lg">{product.description}</p>
                 <p className="text-2xl font-bold">Price: ${product.price}</p>
-                <p className="text-2xl font-semibold text-gray-800">Inventory: <span className="text-green-600">{product.inventory}</span></p>
-<p className="text-2xl font-semibold text-gray-800">Status: <span className="text-blue-600">{product.status}</span></p>
-<p className="text-2xl font-semibold text-gray-800">Colors: <span className="text-gray-700">{product.colors.join(", ")}</span></p>
-<p className="text-2xl font-semibold text-gray-800">Category: <span className="text-purple-600">{product.category}</span></p>
-
+                <p className="text-gray-700 font-semibold">Color: <span className="text-blue-500">{product.colors}</span></p>
+                <p className="text-gray-700 font-semibold">Inventory: <span className="text-green-500">{product.inventory}</span></p>
+                <p className="text-gray-700 font-semibold">Status: <span className="text-yellow-500">{product.status}</span></p>
+                <p className="text-gray-700 font-semibold">Category: <span className="text-purple-500">{product.category}</span></p>
 
                 <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                   <button
-                    onClick={() => handleAddToCart(product)}
+                    onClick={(e) => handleAddToCart(e, product)}
                     className="p-4 w-full md:w-[170px] bg-gradient-to-r from-teal-600 to-purple-700 rounded-full text-white font-bold"
-                    aria-label={`Add ${product.name} to cart`}
+                    aria-label={`Add ${product.productName} to cart`}
                   >
                     Add to Cart
                   </button>
@@ -149,5 +144,3 @@ export default function ProductDetails({ params }: Props) {
     </main>
   );
 }
-
-
