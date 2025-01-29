@@ -62,7 +62,7 @@ export default function ProductDetails({ params }: Props) {
     };
 
     fetchProduct();
-  }, [slug]); // Dependency is slug, which will update if the param changes.
+  }, [params.slug]); // Dependency is slug, which will update if the param changes.
 
   const handleAddToCart = (e: React.MouseEvent, product: Product) => {
     e.preventDefault();
