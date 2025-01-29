@@ -1,4 +1,4 @@
-import Image from "next/image";
+
 import Hero from "./components/hero";
 import Running from "./components/running";
 import Essentials from "./components/essentials";

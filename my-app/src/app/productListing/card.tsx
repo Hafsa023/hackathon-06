@@ -1,8 +1,7 @@
 import { client } from "@/sanity/lib/client";
-import { Product } from "../../../types/product";
-import { sanityFetch } from "@/sanity/lib/fetch";
+
 import { urlFor } from "@/sanity/lib/image";
-import { allProducts, four } from "@/sanity/lib/queries";
+
 
 import Image from "next/image";
 import Link from "next/link";
