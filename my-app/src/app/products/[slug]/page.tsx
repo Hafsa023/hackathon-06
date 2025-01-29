@@ -1,10 +1,10 @@
-"use client";
 import { client } from "@/sanity/lib/client";
 import { urlFor } from "@/sanity/lib/image";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import Swal from 'sweetalert2';
+import Swal from "sweetalert2";
 
+// Define the Product interface
 interface Product {
   productName: string;
   price: number;
@@ -13,57 +13,20 @@ interface Product {
   slug: string;
   _type: string;
   _id: string;
-  quantity?: number; 
+  quantity?: number;
   colors: string;
   inventory: number;
   category: string;
   status: string;
 }
 
+// Define the Props interface
 interface Props {
-  params: {
-    slug: string;
-  };
+  product: Product | null;
+  error: string | null;
 }
 
-export default function ProductDetails({ params }: Props) {
-  const [product, setProduct] = useState<Product | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const { slug } = params;
-
-  useEffect(() => {
-    const fetchProduct = async () => {
-      try {
-        const query = `
-          *[_type == "product" && slug.current == $slug]{
-            productName,
-            price,
-            description,
-            "imageUrl": image.asset->url,
-            "slug": slug.current,
-            _id,
-            _type,
-            colors,
-            inventory,
-            category,
-            status
-          }
-        `;
-        const data = await client.fetch(query, { slug: slug });
-        if (data.length === 0) {
-          setError("Product not found.");
-        } else {
-          setProduct(data[0]);
-        }
-      } catch (err) {
-        console.error("Error fetching product:", err);
-        setError("Failed to load product details. Please try again later.");
-      }
-    };
-
-    fetchProduct();
-  }, [params.slug]); // Dependency is slug, which will update if the param changes.
-
+export default function ProductDetails({ product, error }: Props) {
   const handleAddToCart = (e: React.MouseEvent, product: Product) => {
     e.preventDefault();
     Swal.fire({
@@ -122,10 +85,18 @@ export default function ProductDetails({ params }: Props) {
                 <h1 className="text-3xl font-bold">{product.productName}</h1>
                 <p className="text-lg">{product.description}</p>
                 <p className="text-2xl font-bold">Price: ${product.price}</p>
-                <p className="text-gray-700 font-semibold">Color: <span className="text-blue-500">{product.colors}</span></p>
-                <p className="text-gray-700 font-semibold">Inventory: <span className="text-green-500">{product.inventory}</span></p>
-                <p className="text-gray-700 font-semibold">Status: <span className="text-yellow-500">{product.status}</span></p>
-                <p className="text-gray-700 font-semibold">Category: <span className="text-purple-500">{product.category}</span></p>
+                <p className="text-gray-700 font-semibold">
+                  Color: <span className="text-blue-500">{product.colors}</span>
+                </p>
+                <p className="text-gray-700 font-semibold">
+                  Inventory: <span className="text-green-500">{product.inventory}</span>
+                </p>
+                <p className="text-gray-700 font-semibold">
+                  Status: <span className="text-yellow-500">{product.status}</span>
+                </p>
+                <p className="text-gray-700 font-semibold">
+                  Category: <span className="text-purple-500">{product.category}</span>
+                </p>
 
                 <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                   <button
@@ -143,4 +114,42 @@ export default function ProductDetails({ params }: Props) {
       </div>
     </main>
   );
+}
+
+// Fetch the product details based on the dynamic route
+export async function getServerSideProps({ params }: { params: { slug: string } }) {
+  const { slug } = params;
+  let product = null;
+  let error = null;
+
+  try {
+    const query = `
+      *[_type == "product" && slug.current == $slug]{
+        productName,
+        price,
+        description,
+        "imageUrl": image.asset->url,
+        "slug": slug.current,
+        _id,
+        _type,
+        colors,
+        inventory,
+        category,
+        status
+      }
+    `;
+    const data = await client.fetch(query, { slug });
+    if (data.length === 0) {
+      error = "Product not found.";
+    } else {
+      product = data[0];
+    }
+  } catch (err) {
+    console.error("Error fetching product:", err);
+    error = "Failed to load product details. Please try again later.";
+  }
+
+  return {
+    props: { product, error },
+  };
 }
